@@ -1,7 +1,15 @@
 import com.typesafe.sbt.SbtMultiJvm
 import com.typesafe.sbt.SbtMultiJvm.MultiJvmKeys.MultiJvm
 
-val akkaVersion = "2.4.0"
+val resolutionRepos = Seq(
+        "Typesafe repository" at "http://repo.akka.io/releases/",
+        "Typesafe snapshots" at "http://repo.akka.io/snapshots/"
+)
+
+resolvers ++= resolutionRepos
+
+
+val akkaVersion = "2.4-SNAPSHOT"
 
 val project = Project(
   id = "akka-cluster-sharding-scala",

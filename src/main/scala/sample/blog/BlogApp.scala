@@ -1,12 +1,10 @@
 package sample.blog
 
+import akka.cluster.singleton.{ClusterSingletonManager, ClusterSingletonManagerSettings, ClusterSingletonProxy, ClusterSingletonProxySettings}
+
 import scala.concurrent.duration._
 import com.typesafe.config.ConfigFactory
-import akka.actor.ActorIdentity
-import akka.actor.ActorPath
-import akka.actor.ActorSystem
-import akka.actor.Identify
-import akka.actor.Props
+import akka.actor._
 import akka.cluster.sharding.{ClusterShardingSettings, ClusterSharding}
 import akka.pattern.ask
 import akka.persistence.journal.leveldb.SharedLeveldbJournal
@@ -39,12 +37,16 @@ object BlogApp {
         settings = ClusterShardingSettings(system),
         extractEntityId = AuthorListing.idExtractor,
         extractShardId = AuthorListing.shardResolver)
-      ClusterSharding(system).start(
+      val postShard = ClusterSharding(system).start(
         typeName = Post.shardName,
         entityProps = Post.props(authorListingRegion),
         settings = ClusterShardingSettings(system),
         extractEntityId = Post.idExtractor,
         extractShardId = Post.shardResolver)
+
+      val props = ClusterSingletonManager.props(SingletonActor.props(postShard), PoisonPill, ClusterSingletonManagerSettings(system))
+      system.actorOf(props, SingletonActor.name)
+      val proxy = system.actorOf(ClusterSingletonProxy.props("/user/singleton", ClusterSingletonProxySettings(system)), "singleton")
 
       if (port != "2551" && port != "2552")
         system.actorOf(Props[Bot], "bot")
